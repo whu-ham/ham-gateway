@@ -61,8 +61,9 @@ func (c *Client) Close() error {
 // addAuth adds authentication headers to the context
 func (c *Client) addAuth(ctx context.Context) context.Context {
 	md := metadata.New(map[string]string{
-		"x-app-id":     c.appID,
-		"x-app-secret": c.appSecret,
+		"x-app-id":       c.appID,
+		"x-app-secret":   c.appSecret,
+		"x-request-type": "open-app", // Required by ham-backend-go/internal/pkg/contextx/context.go
 	})
 	return metadata.NewOutgoingContext(ctx, md)
 }

@@ -1,3 +1,5 @@
 gen/
 *.exe
 .DS_Store
+client.crt
+client.key
