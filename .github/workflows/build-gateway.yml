@@ -77,8 +77,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/whu-sb/ham-gateway:${{ needs.prepare-release.outputs.tag_name }}
-            ghcr.io/whu-sb/ham-gateway:${{ needs.prepare-release.outputs.is_prerelease == 'true' && 'dev' || 'latest' }}
-            ghcr.io/whu-sb/ham-gateway:${{ needs.prepare-release.outputs.is_prerelease == 'true' && 'unstable' || 'stable' }}
+            ghcr.io/whu-ham/ham-gateway:${{ needs.prepare-release.outputs.tag_name }}
+            ghcr.io/whu-ham/ham-gateway:${{ needs.prepare-release.outputs.is_prerelease == 'true' && 'dev' || 'latest' }}
+            ghcr.io/whu-ham/ham-gateway:${{ needs.prepare-release.outputs.is_prerelease == 'true' && 'unstable' || 'stable' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
