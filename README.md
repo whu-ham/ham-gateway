@@ -27,6 +27,7 @@ HAM OpenAPI Gateway 是一个专门用于管理和转发 HAM OpenAPI 请求的�
 | GET | `/health` | - | 健康检查 |
 | GET | `/api/v1/external/ham/course/search` | `keyword`, `keyword_type` | 搜索课程 |
 | GET | `/api/v1/external/ham/score/stat` | `course_name`, `instructor` | 获取课程成绩统计 |
+| GET | `/api/v1/external/ham/score/by-course` | `course_name`, `page_num`, `page_size` | 获取课程名对应的所有教学团队成绩统计 |
 
 ## 环境变量
 

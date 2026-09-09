@@ -76,6 +76,7 @@ func main() {
 			{
 				ham.GET("/course/search", hamHandler.SearchCourse)
 				ham.GET("/score/stat", hamHandler.GetCourseStat)
+				ham.GET("/score/by-course", hamHandler.GetCourseStatsByName)
 			}
 		}
 	}
