@@ -11,6 +11,7 @@ import (
 type ClientInterface interface {
 	SearchCourse(ctx context.Context, keyword string, keywordType int32) (*pb.SearchCourseResponse, error)
 	GetCourseScoreItem(ctx context.Context, courseName, instructor string) (*pb.GetCourseScoreItemResponse, error)
+	GetCourseScoresByCourseName(ctx context.Context, courseName string, pageNum, pageSize int32) (*pb.GetCourseScoresByCourseNameResponse, error)
 	Close() error
 }
 

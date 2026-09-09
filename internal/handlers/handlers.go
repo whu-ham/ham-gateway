@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -117,4 +118,60 @@ func (h *HamHandler) GetCourseStat(c *gin.Context) {
 			"range":      scoreRanges,
 		},
 	})
+}
+
+// GetCourseStatsByName handles GET /api/v1/external/ham/score/by-course.
+// Query params: course_name (required), page_num (optional), page_size (optional).
+func (h *HamHandler) GetCourseStatsByName(c *gin.Context) {
+	courseName := c.Query("course_name")
+	if courseName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "400", "message": "course_name is required"})
+		return
+	}
+
+	pageNum, err := parseNonNegativeInt32(c.DefaultQuery("page_num", "0"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "400", "message": "invalid page_num"})
+		return
+	}
+	pageSize, err := parseNonNegativeInt32(c.DefaultQuery("page_size", "30"))
+	if err != nil || pageSize == 0 || pageSize > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "400", "message": "page_size must be between 1 and 100"})
+		return
+	}
+
+	resp, err := h.hamClient.GetCourseScoresByCourseName(c.Request.Context(), courseName, pageNum, pageSize)
+	if err != nil {
+		log.Printf("[GetCourseStatsByName] HAM API call failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": "500", "message": "Failed to connect to HAM API"})
+		return
+	}
+
+	items := make([]gin.H, 0, len(resp.Item))
+	for _, item := range resp.Item {
+		if item == nil {
+			continue
+		}
+		ranges := make([]gin.H, 0, len(item.Range))
+		for _, scoreRange := range item.Range {
+			ranges = append(ranges, gin.H{"from": scoreRange.From, "to": scoreRange.To, "total": scoreRange.Total, "color": scoreRange.Color})
+		}
+		items = append(items, gin.H{
+			"id": item.Id, "name": item.Name, "instructor": item.Instructor,
+			"average": item.Average, "total": item.Total, "range": ranges,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": "00000", "message": "Success",
+		"data": gin.H{"items": items, "page_num": resp.PageNum, "has_more": resp.HasMore},
+	})
+}
+
+func parseNonNegativeInt32(value string) (int32, error) {
+	parsed, err := strconv.ParseInt(value, 10, 32)
+	if err != nil || parsed < 0 {
+		return 0, fmt.Errorf("value must be non-negative")
+	}
+	return int32(parsed), nil
 }

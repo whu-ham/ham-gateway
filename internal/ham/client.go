@@ -101,3 +101,21 @@ func (c *Client) GetCourseScoreItem(ctx context.Context, courseName, instructor 
 
 	return resp, nil
 }
+
+// GetCourseScoresByCourseName calls HAM API to get all score statistics for a course name.
+func (c *Client) GetCourseScoresByCourseName(ctx context.Context, courseName string, pageNum, pageSize int32) (*pb.GetCourseScoresByCourseNameResponse, error) {
+	ctx = c.addAuth(ctx)
+
+	req := &pb.GetCourseScoresByCourseNameRequest{
+		CourseName: courseName,
+		PageNum:    pageNum,
+		PageSize:   pageSize,
+	}
+
+	resp, err := c.scoreClient.GetCourseScoresByCourseName(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("get course scores by course name failed: %w", err)
+	}
+
+	return resp, nil
+}

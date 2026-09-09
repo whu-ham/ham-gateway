@@ -34,6 +34,14 @@ func (m *MockHamClient) GetCourseScoreItem(ctx context.Context, courseName, inst
 	return args.Get(0).(*pb.GetCourseScoreItemResponse), args.Error(1)
 }
 
+func (m *MockHamClient) GetCourseScoresByCourseName(ctx context.Context, courseName string, pageNum, pageSize int32) (*pb.GetCourseScoresByCourseNameResponse, error) {
+	args := m.Called(ctx, courseName, pageNum, pageSize)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetCourseScoresByCourseNameResponse), args.Error(1)
+}
+
 func (m *MockHamClient) Close() error {
 	args := m.Called()
 	return args.Error(0)
@@ -213,6 +221,58 @@ func TestGetCourseStat(t *testing.T) {
 			if tt.courseName != "" && tt.instructor != "" {
 				mockClient.AssertExpectations(t)
 			}
+		})
+	}
+}
+
+func TestGetCourseStatsByName(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	tests := []struct {
+		name         string
+		url          string
+		response     *pb.GetCourseScoresByCourseNameResponse
+		err          error
+		status       int
+		code         string
+		expectCall   bool
+		expectedPage int32
+		expectedSize int32
+	}{
+		{
+			name: "success", url: "/scores?course_name=Math&page_num=1&page_size=20",
+			response: &pb.GetCourseScoresByCourseNameResponse{
+				PageNum: 1,
+				Item:    []*pb.CourseScoreItem{{Name: "Math", Instructor: "Smith", Average: 85.5, Total: 20}},
+			},
+			status: http.StatusOK, code: "00000", expectCall: true, expectedPage: 1, expectedSize: 20,
+		},
+		{
+			name: "missing course name", url: "/scores", status: http.StatusBadRequest, code: "400",
+		},
+		{
+			name: "invalid page size", url: "/scores?course_name=Math&page_size=101", status: http.StatusBadRequest, code: "400",
+		},
+		{
+			name: "upstream error", url: "/scores?course_name=Math", err: errors.New("connection failed"),
+			status: http.StatusInternalServerError, code: "500", expectCall: true, expectedPage: 0, expectedSize: 30,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := new(MockHamClient)
+			if tt.expectCall {
+				mockClient.On("GetCourseScoresByCourseName", mock.Anything, mock.Anything, tt.expectedPage, tt.expectedSize).
+					Return(tt.response, tt.err)
+			}
+			r := gin.New()
+			r.GET("/scores", (&HamHandler{hamClient: mockClient}).GetCourseStatsByName)
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			assert.Equal(t, tt.status, w.Code)
+			assert.Contains(t, w.Body.String(), tt.code)
+			mockClient.AssertExpectations(t)
 		})
 	}
 }
