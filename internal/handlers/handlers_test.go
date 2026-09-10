@@ -193,6 +193,19 @@ func TestGetCourseStat(t *testing.T) {
 			expectedStatus: http.StatusInternalServerError,
 			expectedCode:   "500",
 		},
+		{
+			// HAM returns a response with a nil Item for unknown course-name
+			// variants (e.g. "高等数学A1（创）"). The handler must not dereference
+			// nil (which panicked -> 500); it returns an empty 200 that callers
+			// treat as not-found.
+			name:           "Nil item (course not found) returns empty 200",
+			courseName:     "高等数学A1（创）",
+			instructor:     "刘丁酉",
+			mockResponse:   &pb.GetCourseScoreItemResponse{Item: nil},
+			mockError:      nil,
+			expectedStatus: http.StatusOK,
+			expectedCode:   "00000",
+		},
 	}
 
 	for _, tt := range tests {
@@ -255,6 +268,12 @@ func TestGetCourseStatsByName(t *testing.T) {
 		{
 			name: "upstream error", url: "/scores?course_name=Math", err: errors.New("connection failed"),
 			status: http.StatusInternalServerError, code: "500", expectCall: true, expectedPage: 0, expectedSize: 30,
+		},
+		{
+			// Defensive: a nil response with no error must not panic; it yields
+			// an empty page.
+			name: "nil response", url: "/scores?course_name=Math", response: nil, err: nil,
+			status: http.StatusOK, code: "00000", expectCall: true, expectedPage: 0, expectedSize: 30,
 		},
 	}
 

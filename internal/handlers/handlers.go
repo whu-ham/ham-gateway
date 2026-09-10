@@ -96,6 +96,25 @@ func (h *HamHandler) GetCourseStat(c *gin.Context) {
 		return
 	}
 
+	// HAM returns a nil Item when the (course_name, instructor) pair has no
+	// score data — e.g. unknown course-name variants such as "X（创）". Treat
+	// this as an empty/not-found result instead of dereferencing nil, which
+	// previously panicked and surfaced as a 500.
+	if resp == nil || resp.Item == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    "00000",
+			"message": "Success",
+			"data": gin.H{
+				"name":       "",
+				"instructor": "",
+				"average":    0,
+				"total":      0,
+				"range":      []gin.H{},
+			},
+		})
+		return
+	}
+
 	// Transform response to match gateway format
 	scoreRanges := make([]gin.H, 0, len(resp.Item.Range))
 	for _, r := range resp.Item.Range {
@@ -144,6 +163,13 @@ func (h *HamHandler) GetCourseStatsByName(c *gin.Context) {
 	if err != nil {
 		log.Printf("[GetCourseStatsByName] HAM API call failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": "500", "message": "Failed to connect to HAM API"})
+		return
+	}
+	if resp == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": "00000", "message": "Success",
+			"data": gin.H{"items": []gin.H{}, "page_num": pageNum, "has_more": false},
+		})
 		return
 	}
 
